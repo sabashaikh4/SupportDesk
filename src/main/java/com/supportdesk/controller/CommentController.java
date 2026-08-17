@@ -6,26 +6,33 @@ import com.supportdesk.response.CommentResponse;
 import com.supportdesk.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/tickets")
-
 public class CommentController {
 
     private final CommentService commentService;
 
-    public ResponseEntity<CommentResponse> addComment(@Valid @RequestParam
-                                                      CreateCommentRequest request ,@PathVariable Long TicketId ){
-        CommentResponse create = commentService.addComment(TicketId , request , email);
+    @PostMapping("/{ticketId}/comments")
+    public ResponseEntity<CommentResponse> addComment(@PathVariable Long ticketId ,@Valid @RequestBody
+                                                      CreateCommentRequest request ){
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+       return ResponseEntity.status(HttpStatus.CREATED).body(commentService.addComment(ticketId ,email, request));
 
     }
 
+    @GetMapping("/{ticketId}/comments")
+    public ResponseEntity<List<CommentResponse>> getComments(
+            @PathVariable Long ticketId){
+        return ResponseEntity.ok(commentService.getCommentsByTicket(ticketId));
+    }
 
 
 

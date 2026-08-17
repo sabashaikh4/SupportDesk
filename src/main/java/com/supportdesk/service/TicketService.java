@@ -5,6 +5,7 @@ import com.supportdesk.entity.TicketStatus;
 import com.supportdesk.entity.User;
 import com.supportdesk.exception.TicketNotFoundException;
 import com.supportdesk.repository.TicketRepository;
+import com.supportdesk.repository.UserRepository;
 import com.supportdesk.request.CreateTicketRequest;
 import com.supportdesk.request.UpdateTicketRequest;
 import com.supportdesk.response.TicketResponse;
@@ -20,12 +21,17 @@ import java.util.List;
 public class TicketService {
 
     private final TicketRepository repository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public TicketResponse createTicket(CreateTicketRequest request) {
+    public TicketResponse createTicket(CreateTicketRequest request , String userEmail) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(()-> new RuntimeException("User not found"));
         Ticket ticket = new Ticket();
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
+        ticket.setCreatedBy(user);
         return mapToResponse(repository.save(ticket));
     }
 
@@ -81,9 +87,21 @@ public class TicketService {
                 .title(ticket.getTitle())
                 .description(ticket.getDescription())
                 .status(ticket.getStatus())
+                .priority(ticket.getPriority())
                 .createdAt(ticket.getCreatedAt())
-                .createdBy(mapToUserSummary(ticket.getCreatedBy()))
-                .assignedTo(mapToUserSummary(ticket.getAssignedTo()))
+                .updatedAt(ticket.getUpdatedAt())
+                .createdBy(ticket.getCreatedBy() != null
+                        ? UserSummaryResponse.builder()
+                        .id(ticket.getCreatedBy().getId())
+                        .name(ticket.getCreatedBy().getName())
+                        .build()
+                        : null)
+                .assignedTo(ticket.getAssignedTo() != null
+                        ? UserSummaryResponse.builder()
+                        .id(ticket.getAssignedTo().getId())
+                        .name(ticket.getAssignedTo().getName())
+                        .build()
+                        : null)
                 .build();
     }
 

@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +28,11 @@ public class TicketController {
     public ResponseEntity<TicketResponse> createTicket(
             @Valid @RequestBody CreateTicketRequest request){
 
-        TicketResponse create = ticketService.createTicket(request);
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        TicketResponse create = ticketService.createTicket(request,email);
         return ResponseEntity.status(HttpStatus.CREATED).body(create);
     }
 
