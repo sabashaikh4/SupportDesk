@@ -87,4 +87,32 @@ public class AuthService {
                 .role(user.getRoles().iterator().next().name())
                 .build();
     }
+
+    @Transactional
+    public  AuthResponse registerWithRole( RegisterRequest request, Role role) {
+        if (userRepository.existsByEmail(request.getEmail())){
+            throw new RuntimeException("Email already exists");
+        }
+
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRoles(Set.of(role));
+
+        userRepository.save(user);
+
+        UserDetails userDetails = userDetailsService
+                .loadUserByUsername(user.getEmail());
+
+        String token = jwtService.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .token(token)
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(role.name())
+                .build();
+    }
+
 }
