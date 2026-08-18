@@ -1,5 +1,6 @@
 package com.supportdesk.service;
 
+import com.supportdesk.entity.Role;
 import com.supportdesk.entity.Ticket;
 import com.supportdesk.entity.TicketStatus;
 import com.supportdesk.entity.User;
@@ -20,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TicketService {
 
-    private final TicketRepository repository;
+    private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -32,18 +33,35 @@ public class TicketService {
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
         ticket.setCreatedBy(user);
-        return mapToResponse(repository.save(ticket));
+        return mapToResponse(ticketRepository.save(ticket));
     }
 
-    public List<TicketResponse> getAllTickets() {
-        return repository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public List<TicketResponse> getAllTickets(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRoles().contains(Role.ROLE_ADMIN)) {
+
+            return ticketRepository.findAll()
+                    .stream().map(this::mapToResponse).toList();
+
+
+        } else if (user.getRoles().contains(Role.ROLE_AGENT)) {
+
+            return ticketRepository.findByAssignedTo(user)
+                    .stream().map(this::mapToResponse).toList();
+
+        } else {
+
+            return ticketRepository.findByCreatedBy(user)
+                    .stream().map(this::mapToResponse).toList();
+        }
     }
 
     public TicketResponse getTicketById(Long id) {
-        Ticket ticket = repository.findById(id)
+        Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException(id));
         return mapToResponse(ticket);
     }
@@ -52,7 +70,7 @@ public class TicketService {
     public TicketResponse updateTicketStatus(Long id, TicketStatus status) {
         Ticket ticket = findTicketOrThrow(id);
         if (status != null) ticket.setStatus(status);
-        return mapToResponse(repository.save(ticket));
+        return mapToResponse(ticketRepository.save(ticket));
     }
 
     @Transactional
@@ -60,24 +78,40 @@ public class TicketService {
         Ticket ticket = findTicketOrThrow(id);
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
-        return mapToResponse(repository.save(ticket));
+        return mapToResponse(ticketRepository.save(ticket));
     }
 
     @Transactional
     public void deleteTicket(Long id) {
         Ticket ticket = findTicketOrThrow(id);
-        repository.delete(ticket);
+        ticketRepository.delete(ticket);
     }
 
     public List<TicketResponse> getTicketsByStatus(TicketStatus status) {
-        return repository.findAllByStatus(status)
+        return ticketRepository.findAllByStatus(status)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
+    @Transactional
+    public TicketResponse assignTicket(Long ticketId , Long agentId){
+        Ticket ticket = findTicketOrThrow(ticketId);
+
+        User agent = userRepository.findById(agentId)
+                .orElseThrow(()-> new RuntimeException("Agent not found"));
+
+        // verify the user is actually an agent
+        if (!agent.getRoles().contains(Role.ROLE_AGENT)){
+            throw new RuntimeException("User is not an agent");
+        }
+
+        ticket.setAssignedTo(agent);
+        return  mapToResponse(ticketRepository.save(ticket));
+    }
+
     private Ticket findTicketOrThrow(Long id) {
-        return repository.findById(id)
+        return ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException(id));
     }
 

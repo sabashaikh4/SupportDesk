@@ -1,5 +1,6 @@
 package com.supportdesk.controller;
 
+import com.supportdesk.entity.Role;
 import com.supportdesk.request.LoginRequest;
 import com.supportdesk.request.RegisterRequest;
 import com.supportdesk.response.AuthResponse;
@@ -30,7 +31,7 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
-    
+
     @PostMapping("/register/admin")
     public ResponseEntity<AuthResponse> registerAdmin(
             @Valid @RequestBody RegisterRequest request
