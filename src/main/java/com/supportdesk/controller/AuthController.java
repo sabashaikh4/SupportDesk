@@ -30,4 +30,21 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+    
+    @PostMapping("/register/admin")
+    public ResponseEntity<AuthResponse> registerAdmin(
+            @Valid @RequestBody RegisterRequest request
+    ){
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(authService.registerWithRole(request, Role.ROLE_ADMIN));
+    }
+
+    @PostMapping("/register/agent")
+    public ResponseEntity<AuthResponse> registerAgent(
+            @Valid @RequestBody RegisterRequest request
+    ){
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(authService.registerWithRole(request,Role.ROLE_AGENT));
+    }
+
 }
